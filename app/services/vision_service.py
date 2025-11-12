@@ -4,7 +4,9 @@ import io, json
 
 # 👇 Paste your JSON key content here (just for local testing)
 
-
+SERVICE_ACCOUNT_JSON = {
+  
+}
 # Create credentials from the dictionary
 credentials = service_account.Credentials.from_service_account_info(SERVICE_ACCOUNT_JSON)
 
