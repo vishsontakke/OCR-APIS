@@ -1,6 +1,7 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException,Form
 from pathlib import Path
 import tempfile
+import re
 from app.services.ocr_service import extract_text_from_image, extract_text_from_video, extract_text_from_pdf
 
 router = APIRouter(prefix="/ocr", tags=["OCR"])
@@ -69,15 +70,36 @@ async def verify_ocr(
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {suffix}")
 
+        # # Combine all recognized text
+        # full_text = " ".join(
+        #     [item.get("text", "") for item in results if item.get("text")]
+        # ).strip().lower()
+
+        # # Normalize and check presence
+        # name_present = name.lower() in full_text
+        # dob_present = dob.lower() in full_text
+        # Pan_present = Pan.lower() in full_text
+
+
         # Combine all recognized text
         full_text = " ".join(
             [item.get("text", "") for item in results if item.get("text")]
         ).strip().lower()
 
-        # Normalize and check presence
-        name_present = name.lower() in full_text
-        dob_present = dob.lower() in full_text
-        Pan_present = Pan.lower() in full_text
+
+        def exact_phrase(text, phrase):
+            if not phrase:
+                return False
+            phrase = phrase.lower().strip()
+            # \b → ensures exact full-word boundary (no partial matches)
+            pattern = r"\b" + re.escape(phrase) + r"\b"
+            return re.search(pattern, text) is not None
+
+
+        # Exact match checks
+        name_present = exact_phrase(full_text, name)
+        dob_present = exact_phrase(full_text, dob)
+        Pan_present = exact_phrase(full_text, Pan)
 
         verification_status = "verified" if (name_present and dob_present and Pan_present) else "not_verified"
 
