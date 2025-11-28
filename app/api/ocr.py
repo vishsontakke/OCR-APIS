@@ -27,15 +27,20 @@ async def perform_ocr(file: UploadFile = File(...)):
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {suffix}")
 
-          # Combine all recognized text for convenience
+        # Always extract the list of results from the dict if needed
+        if isinstance(results, dict):
+            result_list = results.get("results", [])
+        else:
+            result_list = results
+
         full_text = " ".join(
-            [item.get("text", "") for item in results if item.get("text")]
+            [item.get("text", "") for item in result_list if isinstance(item, dict) and item.get("text")]
         ).strip()
 
         return {
             "filename": file.filename,
-            "total_items": len(results),
-            "results": results,
+            "total_items": len(result_list),
+            "results": result_list,
             "full_text": full_text
         }
 
@@ -81,9 +86,17 @@ async def verify_ocr(
         # Pan_present = Pan.lower() in full_text
 
 
-        # Combine all recognized text
+
+        # Always extract the list of results from the dict if needed
+        if isinstance(results, dict):
+            result_list = results.get("results", [])
+            time_taken = results.get("time_taken")
+        else:
+            result_list = results
+            time_taken = None
+
         full_text = " ".join(
-            [item.get("text", "") for item in results if item.get("text")]
+            [item.get("text", "") for item in result_list if isinstance(item, dict) and item.get("text")]
         ).strip().lower()
 
 
@@ -111,7 +124,8 @@ async def verify_ocr(
             "name_found": name_present,
             "dob_found": dob_present,
             "Pan_found": Pan_present,
-            "status": verification_status
+            "status": verification_status,
+            "time_taken": time_taken
         }
 
     except Exception as e:

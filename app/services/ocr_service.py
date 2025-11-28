@@ -1,11 +1,19 @@
 import easyocr
+# Cache for EasyOCR Reader objects by language tuple
+_EASYOCR_READERS = {}
+
+def get_easyocr_reader(languages, gpu=False):
+    key = tuple(languages)
+    if key not in _EASYOCR_READERS:
+        _EASYOCR_READERS[key] = easyocr.Reader(languages, gpu=gpu)
+    return _EASYOCR_READERS[key]
 import ssl
 import re
 import cv2
 import numpy as np
 from pathlib import Path
 from pdf2image import convert_from_path
-
+from datetime import datetime
 # Fix SSL certificate verification issue on macOS
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -64,10 +72,17 @@ def extract_text_from_image(image_path: str, languages=['en']):
     Returns:
         list: OCR results with text, confidence, and bounding boxes
     """
+    
     try:
-        reader = easyocr.Reader(languages, gpu=False)
-        results = reader.readtext(image_path)
-
+        start_time = datetime.now()
+        image_path1="image.png"
+        print("1",datetime.now())
+        reader = get_easyocr_reader(languages, gpu=False)
+        print("2",datetime.now())
+        results = reader.readtext(image_path1)
+        print("3",datetime.now())
+        end_time = datetime.now()
+        print("4",datetime.now())
         extracted = []
         for (bbox, text, confidence) in results:
             cleaned = filter_english_only(text)
@@ -78,7 +93,14 @@ def extract_text_from_image(image_path: str, languages=['en']):
                 "bbox": bbox_py
             })
 
-        return clean_numpy_types(extracted)
+        print("5",datetime.now())
+        time_taken = (end_time - start_time).total_seconds()
+        print("Time taken to process image OCR: ", time_taken, "seconds")
+
+        return {
+            "results": clean_numpy_types(extracted),
+            "time_taken": time_taken
+        }
     except Exception as e:
         raise RuntimeError(f"OCR image processing failed: {str(e)}")
 
@@ -97,7 +119,7 @@ def extract_text_from_video(video_path: str, languages=['en'], frame_skip=10):
         list: OCR results for each processed frame
     """
     try:
-        reader = easyocr.Reader(languages, gpu=False)
+        reader = get_easyocr_reader(languages, gpu=False)
         cap = cv2.VideoCapture(video_path)
 
         if not cap.isOpened():
@@ -150,7 +172,7 @@ def extract_text_from_pdf(pdf_path: str, languages=['en']):
     try:
         # Convert PDF pages to images
         pages = convert_from_path(pdf_path, dpi=300)
-        reader = easyocr.Reader(languages, gpu=False)
+        reader = get_easyocr_reader(languages, gpu=False)
         results = []
 
         for page_num, page in enumerate(pages, start=1):
