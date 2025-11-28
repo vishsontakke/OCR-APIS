@@ -1,25 +1,35 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from pathlib import Path
 import tempfile
-from app.services.paddleocr_service import paddle_ocr_and_annotate
+import shutil
+
+from app.services.paddleocr_service import paddle_ocr_and_annotate  # your optimized function
 
 router = APIRouter(prefix="/paddleocr", tags=["PaddleOCR"])
 
-@router.post("/predict", name="PaddleOCR Predict and Annotate")
+@router.post("/predict", name="PaddleOCR Fast Predict")
 async def paddleocr_predict(file: UploadFile = File(...)):
     try:
         suffix = Path(file.filename).suffix.lower()
         allowed_exts = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
+
         if suffix not in allowed_exts:
             raise HTTPException(status_code=400, detail="Only image files are supported for PaddleOCR.")
+
+        # Fast temp save (no memory read)
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(await file.read())
+            shutil.copyfileobj(file.file, tmp)
             tmp_path = tmp.name
+
+        # Run FAST OCR
         result = paddle_ocr_and_annotate(tmp_path)
+
         return {
             "filename": file.filename,
-            "texts": result['texts'],
-            "annotated_image_path": result['annotated_path']
+            "texts": result["texts"],
+            "raw_text": result["raw_text"],
+            "execution_time": result["execution_time"]
         }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PaddleOCR failed: {str(e)}")

@@ -44,7 +44,8 @@ async def paddleocr_pdf_predict(file: UploadFile = File(...)):
             "filename": file.filename,
             "pages": min(len(images), max_pages),
             "texts": results,
-            "annotated_image_paths": annotated_paths
+            "annotated_image_paths": annotated_paths,
+            "execution_time": result['execution_time']
         }
     except Exception as e:
         import traceback
