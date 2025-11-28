@@ -9,6 +9,9 @@ router = APIRouter(prefix="/paddleocr", tags=["PaddleOCR"])
 async def paddleocr_predict(file: UploadFile = File(...)):
     try:
         suffix = Path(file.filename).suffix.lower()
+        allowed_exts = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
+        if suffix not in allowed_exts:
+            raise HTTPException(status_code=400, detail="Only image files are supported for PaddleOCR.")
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(await file.read())
             tmp_path = tmp.name
