@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import shutil
 
-from app.services.paddleocr_service import paddle_ocr_and_annotate  # your optimized function
+from app.services.paddleocr_service import paddle_ocr_and_annotate, ocr  # Import preloaded OCR
 
 router = APIRouter(prefix="/paddleocr", tags=["PaddleOCR"])
 
@@ -21,8 +21,8 @@ async def paddleocr_predict(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, tmp)
             tmp_path = tmp.name
 
-        # Run FAST OCR
-        result = paddle_ocr_and_annotate(tmp_path)
+        # Run FAST OCR with preloaded model
+        result = paddle_ocr_and_annotate(tmp_path, ocr=ocr)
 
         return {
             "filename": file.filename,

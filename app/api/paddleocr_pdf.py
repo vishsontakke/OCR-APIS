@@ -3,10 +3,7 @@ from pathlib import Path
 import tempfile
 import fitz  # PyMuPDF
 import os
-from app.services.paddleocr_service import paddle_ocr_and_annotate
-from paddleocr import PaddleOCR
-from PIL import Image
-ocr = PaddleOCR(lang='en')  # Load once, reuse for all pages
+from app.services.paddleocr_service import paddle_ocr_and_annotate, ocr  # Use shared OCR instance
 
 router = APIRouter(prefix="/paddleocr", tags=["PaddleOCR"])
 
