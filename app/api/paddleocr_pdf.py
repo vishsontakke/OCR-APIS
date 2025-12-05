@@ -1,10 +1,11 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from pathlib import Path
 import tempfile
-from pdf2image import convert_from_path
+import fitz  # PyMuPDF
 import os
 from app.services.paddleocr_service import paddle_ocr_and_annotate
 from paddleocr import PaddleOCR
+from PIL import Image
 ocr = PaddleOCR(lang='en')  # Load once, reuse for all pages
 
 router = APIRouter(prefix="/paddleocr", tags=["PaddleOCR"])
@@ -19,30 +20,35 @@ async def paddleocr_pdf_predict(file: UploadFile = File(...)):
             tmp.write(await file.read())
             tmp_path = tmp.name
         print(f"[PaddleOCR] Converting PDF to images: {tmp_path}")
-        images = convert_from_path(tmp_path, dpi=120)  # Lower DPI for speed
-        print(f"[PaddleOCR] PDF has {len(images)} pages. Limiting to first 3 pages for test.")
-        max_pages = 3
+        
+        # Use PyMuPDF to convert PDF to image (no poppler needed)
+        pdf_document = fitz.open(tmp_path)
+        print(f"[PaddleOCR] Processing first page only.")
         results = []
         annotated_paths = []
         import time
-        for i, page in enumerate(images[:max_pages]):
-            img_path = tmp_path + f"_page_{i+1}.png"
-            page.save(img_path, "PNG")
-            print(f"[PaddleOCR] Processing page {i+1} -> {img_path}")
-            t0 = time.time()
-            try:
-                # Use the global OCR object for all pages
-                result = paddle_ocr_and_annotate(img_path, ocr=ocr)
-                results.append(result['texts'])
-                annotated_paths.append(result['annotated_path'])
-                print(f"[PaddleOCR] Page {i+1} done in {time.time() - t0:.2f} seconds.")
-            except Exception as page_e:
-                print(f"[PaddleOCR] Error processing page {i+1}: {page_e}")
-                results.append([f"Error processing page {i+1}: {page_e}"])
-                annotated_paths.append(None)
+        
+        # Process only the first page
+        page = pdf_document[0]
+        pix = page.get_pixmap(dpi=120)
+        img_path = tmp_path + f"_page_1.png"
+        pix.save(img_path)
+        pdf_document.close()
+        print(f"[PaddleOCR] Processing page 1 -> {img_path}")
+        t0 = time.time()
+        try:
+            # Use the global OCR object
+            result = paddle_ocr_and_annotate(img_path, ocr=ocr)
+            results.append(result['texts'])
+            annotated_paths.append(result['annotated_path'])
+            print(f"[PaddleOCR] Page 1 done in {time.time() - t0:.2f} seconds.")
+        except Exception as page_e:
+            print(f"[PaddleOCR] Error processing page 1: {page_e}")
+            results.append([f"Error processing page 1: {page_e}"])
+            annotated_paths.append(None)
         return {
             "filename": file.filename,
-            "pages": min(len(images), max_pages),
+            "pages": 1,
             "texts": results,
             "annotated_image_paths": annotated_paths,
             "execution_time": result['execution_time']
