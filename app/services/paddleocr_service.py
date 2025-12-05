@@ -3,7 +3,7 @@ from paddleocr import PaddleOCR
 # ------------------------------
 # Load OCR Once (Huge Speed Boost)
 # ------------------------------
-ocr = PaddleOCR(lang='hi')
+ocr = PaddleOCR(lang='en')
 
 def paddle_ocr_and_annotate(img_path: str, ocr=None):
     """

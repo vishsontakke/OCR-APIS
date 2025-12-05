@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.paddleocr import router as paddleocr_router
 
-app = FastAPI(title="Simple FastAPI App",root_path="/ocr" )
+app = FastAPI(title="Simple FastAPI App",root_path="/ocr-api" )
 
 app.add_middleware(
     CORSMiddleware,
