@@ -1,7 +1,13 @@
 pdf2image
 paddleocr
 paddlepaddle
-annotated-doc==0.0.3
+aiofiles
+PyMuPDF
+celery==5.3.4
+redis==5.0.1
+slowapi==0.1.9
+python-multipart==0.0.20
+uvicorn==0.38.0
 annotated-types==0.7.0
 anyio==4.11.0
 click==8.3.0
